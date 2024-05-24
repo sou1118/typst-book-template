@@ -1,0 +1,16 @@
+{
+    "name": "document",
+    "build": {
+      "dockerfile": "./Dockerfile"
+    },
+    "containerUser": "dev",
+    "customizations": {
+      "vscode": {
+        "extensions": [
+          "nvarner.typst-lsp",
+          "mgt19937.typst-preview",
+          "james-yu.latex-workshop"
+        ]
+      }
+    }
+  }

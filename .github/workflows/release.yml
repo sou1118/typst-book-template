@@ -1,0 +1,60 @@
+on:
+    push:
+      tags:
+        - "v*"
+
+env:
+  FILENAME: book
+
+jobs:
+  release:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout git repo
+        uses: actions/checkout@v4
+      - name: Install Typst
+        run: sudo snap install typst
+      - name: Install Noto CJK fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
+      - name: Build PDF with Typst
+        id: typst
+        continue-on-error: true
+        run: |
+          if [ -f "$FILENAME.typ" ]; then
+
+            typst compile $FILENAME.typ
+            echo "::set-output name=typst_success::true"
+          else
+            echo "::set-output name=typst_success::false"
+          fi
+      - name: Install dependencies
+        if: steps.typst.outputs.typst_success == 'false'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+          texlive \
+          texlive-lang-japanese \
+          texlive-fonts-recommended \
+          texlive-luatex
+          sudo apt-get autoremove -y
+          sudo apt-get clean -y
+      - name: Install locales
+        if: steps.typst.outputs.typst_success == 'false'
+        run: |
+          sudo apt-get install -y locales
+          sudo sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen
+          sudo locale-gen
+      - name: Build PDF with LaTeX
+        if: steps.typst.outputs.typst_success == 'false'
+        run: |
+          if [ -f "$FILENAME.tex" ]; then
+            latexmk $FILENAME.tex
+          fi
+      - name: Create a release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ env.FILENAME }}.pdf
